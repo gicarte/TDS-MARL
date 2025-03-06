@@ -1,0 +1,313 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE rdf:RDF [
+    <!ENTITY owl "http://www.w3.org/2002/07/owl#" >
+    <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#" >
+    <!ENTITY owl2xml "http://www.w3.org/2006/12/owl2-xml#" >
+    <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#" >
+    <!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#" >
+    <!ENTITY tlo "http://plasma.informatik.uni-bremen.de/owl/tlo.owl#" >
+    <!ENTITY trans "http://plasma.informatik.uni-bremen.de/owl/trans.owl#" >
+    <!ENTITY points "http://plasma.informatik.uni-bremen.de/owl/points_20032019.owl#">
+    <!ENTITY mine "http://plasma.informatik.uni-bremen.de/owl/miningtrans.owl#">
+]>
+
+<rdf:RDF xmlns="http://plasma.informatik.uni-bremen.de/owl/scenario.template_20032019.owl#"
+ 	 xml:base="http://plasma.informatik.uni-bremen.de/owl/scenario.template_20032019.owl"
+   	 xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+ 	 xmlns:owl2xml="http://www.w3.org/2006/12/owl2-xml#"
+ 	 xmlns:owl="http://www.w3.org/2002/07/owl#"
+ 	 xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+ 	 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ 	 xmlns:tlo="http://plasma.informatik.uni-bremen.de/owl/tlo.owl#"
+ 	 xmlns:trans="http://plasma.informatik.uni-bremen.de/owl/trans.owl#"
+ 	 xmlns:graph="http://plasma.informatik.uni-bremen.de/owl/points_20032019.owl#"
+ 	 xmlns:mine="http://plasma.informatik.uni-bremen.de/owl/miningtrans.owl#">
+ 
+    <owl:Ontology rdf:about="">
+        <rdfs:comment rdf:datatype="&xsd;string">Ontologia del escenario de despacho minero (operación).</rdfs:comment>
+        <owl:imports rdf:resource="http://plasma.informatik.uni-bremen.de/owl/points_20032019.owl"/>
+        <owl:imports rdf:resource="http://plasma.informatik.uni-bremen.de/owl/miningtrans.owl"/>
+    </owl:Ontology>
+
+    <tlo:Company rdf:ID="SFB_Logistics">
+        
+    </tlo:Company>
+
+	<mine:Wastedump rdf:ID="UB1_TRANQUEBERM_EST">
+        <tlo:positionedAt rdf:resource="#UB1_TRANQUEBERM_EST"/>
+        <mine:maximumDischarge rdf:datatype="&xsd;integer">99</mine:maximumDischarge>
+    </mine:Wastedump>
+
+
+
+<mine:Wastedump rdf:ID="UB1_TRANQUEESPA_EST">
+        <tlo:positionedAt rdf:resource="#UB1_TRANQUEESPA_EST"/>
+        <mine:maximumDischarge rdf:datatype="&xsd;integer">99</mine:maximumDischarge>
+    </mine:Wastedump>
+
+
+
+<mine:Crusher rdf:ID="CS03">
+        <tlo:positionedAt rdf:resource="#CS03"/>
+        <mine:maximumDischarge rdf:datatype="&xsd;integer">1</mine:maximumDischarge>
+    </mine:Crusher>
+
+
+
+<mine:Wastedump rdf:ID="RB1_RAMPAZORRO_EST">
+        <tlo:positionedAt rdf:resource="#RB1_RAMPAZORRO_EST"/>
+        <mine:maximumDischarge rdf:datatype="&xsd;integer">99</mine:maximumDischarge>
+    </mine:Wastedump>
+
+
+
+<mine:Wastedump rdf:ID="RB2_PUMA2_EST">
+        <tlo:positionedAt rdf:resource="#RB2_PUMA2_EST"/>
+        <mine:maximumDischarge rdf:datatype="&xsd;integer">99</mine:maximumDischarge>
+    </mine:Wastedump>
+
+
+
+<mine:Stockpile rdf:ID="Stock_RS1_STOCKCR04_SME">
+        <tlo:positionedAt rdf:resource="#RS1_STOCKCR04_SME"/>
+        <mine:maximumDischarge rdf:datatype="&xsd;integer">99</mine:maximumDischarge>
+    </mine:Stockpile>
+
+
+
+<mine:Shovel rdf:ID="PA01">
+        <tlo:positionedAt rdf:resource="#RF10A_4270_1012_1"/>
+        <tlo:transportationCapacity rdf:datatype="&xsd;float">74</tlo:transportationCapacity>
+        <mine:loadRate rdf:datatype="&xsd;integer">12778</mine:loadRate>
+        <mine:digRate rdf:datatype="&xsd;integer">0</mine:digRate>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:idealAmount rdf:datatype="&xsd;integer">0</mine:idealAmount>
+<mine:metaOperacional rdf:datatype="&xsd;integer">35997</mine:metaOperacional>
+        <mine:destination rdf:resource="#RB2_PUMA2_EST"/>
+        </mine:Shovel>
+
+
+
+<mine:Shovel rdf:ID="PA02">
+        <tlo:positionedAt rdf:resource="#RF10B_4255_1001_1"/>
+        <tlo:transportationCapacity rdf:datatype="&xsd;float">74</tlo:transportationCapacity>
+        <mine:loadRate rdf:datatype="&xsd;integer">15444</mine:loadRate>
+        <mine:digRate rdf:datatype="&xsd;integer">0</mine:digRate>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:idealAmount rdf:datatype="&xsd;integer">0</mine:idealAmount>
+<mine:metaOperacional rdf:datatype="&xsd;integer">45597</mine:metaOperacional>
+        <mine:destination rdf:resource="#CS03"/>
+        </mine:Shovel>
+
+
+
+<mine:Shovel rdf:ID="PA03">
+        <tlo:positionedAt rdf:resource="#UB1_4390_EST"/>
+        <tlo:transportationCapacity rdf:datatype="&xsd;float">36</tlo:transportationCapacity>
+        <mine:loadRate rdf:datatype="&xsd;integer">27002</mine:loadRate>
+        <mine:digRate rdf:datatype="&xsd;integer">0</mine:digRate>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:idealAmount rdf:datatype="&xsd;integer">0</mine:idealAmount>
+<mine:metaOperacional rdf:datatype="&xsd;integer">15387</mine:metaOperacional>
+        <mine:destination rdf:resource="#UB1_TRANQUEBERM_EST"/>
+        </mine:Shovel>
+
+
+
+<mine:Shovel rdf:ID="PA04">
+        <tlo:positionedAt rdf:resource="#UB1_4390_EST"/>
+        <tlo:transportationCapacity rdf:datatype="&xsd;float">42</tlo:transportationCapacity>
+        <mine:loadRate rdf:datatype="&xsd;integer">20597</mine:loadRate>
+        <mine:digRate rdf:datatype="&xsd;integer">0</mine:digRate>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:idealAmount rdf:datatype="&xsd;integer">0</mine:idealAmount>
+<mine:metaOperacional rdf:datatype="&xsd;integer">20491</mine:metaOperacional>
+        <mine:destination rdf:resource="#UB1_TRANQUEESPA_EST"/>
+        </mine:Shovel>
+
+
+
+<mine:Shovel rdf:ID="PA05">
+        <tlo:positionedAt rdf:resource="#RF10A_4270_1012_1"/>
+        <tlo:transportationCapacity rdf:datatype="&xsd;float">79</tlo:transportationCapacity>
+        <mine:loadRate rdf:datatype="&xsd;integer">19006</mine:loadRate>
+        <mine:digRate rdf:datatype="&xsd;integer">0</mine:digRate>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:idealAmount rdf:datatype="&xsd;integer">0</mine:idealAmount>
+<mine:metaOperacional rdf:datatype="&xsd;integer">55005</mine:metaOperacional>
+        <mine:destination rdf:resource="#RB2_PUMA2_EST"/>
+        </mine:Shovel>
+
+
+        
+<trans:Truck rdf:ID="CA100">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">24</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RF12_4645_1206_1"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">58000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">18</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">18000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43200</mine:tiempo_de_operacion>
+</trans:Truck>
+
+
+<trans:Truck rdf:ID="CA101">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">23</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RI10A_INPIT_SBH"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">67000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">18</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">34000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43200</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA103">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">26</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RF11"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">45000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">22</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">44000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43200</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA104">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">15</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RS2_4600_MIX"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">373</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">41000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">24</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">178000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">25748</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA105">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">35</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RS1_4550_SBL"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">373</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">50000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">21</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">74000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">3025</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA106">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">35</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RS3_4600_MIX"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">373</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">49000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">20</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">66000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">6164</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA107">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">27</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RB1_CHINCHILLA_EST"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">373</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">44000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">21</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">62000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43200</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA108">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">27</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#BOT"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">46000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">20</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">51000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">40954</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA109">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">23</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RF10B_4270_1026_1"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">60000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">19</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">14000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">25513</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA110">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">19</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#NR1212"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">31000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">18</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">62000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">29781</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA111">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">18</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RB1_PUMANEUTRO_EST"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">87000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">20</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">45000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">17608</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA112">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">27</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RS3_JUREL_MIX"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">35000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">19</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">86000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43200</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA113">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">25</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RF11_4330_1102_1"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">74000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">20</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">79000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43142</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA114">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">25</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RS2_4600_MIX"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">51000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">19</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">94000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">43200</mine:tiempo_de_operacion>
+</trans:Truck>
+
+<trans:Truck rdf:ID="CA115">
+        <tlo:maximumPossibleVelocity rdf:datatype="&xsd;integer">18</tlo:maximumPossibleVelocity>
+        <tlo:positionedAt rdf:resource="#RI11_INPIT_SAL"/>
+        <tlo:storageCapacity rdf:datatype="&xsd;float">300</tlo:storageCapacity>
+        <mine:currentLoad rdf:datatype="&xsd;float">0</mine:currentLoad>
+        <mine:dischargeRate rdf:datatype="&xsd;integer">75000</mine:dischargeRate>
+        <mine:loadedSpeed rdf:datatype="&xsd;integer">19</mine:loadedSpeed>
+        <mine:spottingTime rdf:datatype="&xsd;integer">114000</mine:spottingTime>
+        <mine:tiempo_de_operacion rdf:datatype="&xsd;integer">22077</mine:tiempo_de_operacion>
+</trans:Truck>
+
+
+
+
+	</rdf:RDF>

@@ -1,0 +1,14 @@
+[current] cuando camion genera respuesta a CFP y despues recibe accept, el camion envia cancel por que ya esta ocupado el slot. 
+          la pala reinicia con el mismo hora de oferta y el mismo cambio vuele a proponer lo mismo que canceló en la negociacion anterior. 
+          la pala vuelve a seleccionarlo y el camion vuelve a enviar cancel y se queda en un loop todo el rato. 
+
+[pending] hay que determinar bien la finalización de una negociacion. Es un poco confusa.
+la finalizacion se da por:	shovel recibe INFORM en respuesta a un accept enviado por el shovel
+							shovel recibe CANCEL en respuesta a un accept enviado por el shovel
+							shovel recibe todas las respuestas pero ningun PROPOSE dentro del deadline
+							shovel cumple deadline y no hay propuestas.
+
+[done] grabar schedules
+
+[para chequeos]
+** =SI(D3>=E2;"ok";"fallo") solapamientos en schedules.csv
