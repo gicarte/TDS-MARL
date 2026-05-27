@@ -3,7 +3,7 @@ public class ParametrosConfiguracion {
 
 	public static int NUMERODESHOVELS;//en main container se inicializa.
 	public static int NUMERODETRUCKS; //en main container se inicializa.
-	public static long DEADLINE_MS=4000L;
+	public static long DEADLINE_MS=1000L;
 	public static final long SEGUNDO_FINAL_HORARIO = 6*60*60*1000; // turno de 6 horas en milisegundos;
 	public static final String LEARNING_ENABLED = "false";
 	public static final String NOMBRE_ARCHIVO_FLOTA = "datosShovelTrucksPequeno.owl";

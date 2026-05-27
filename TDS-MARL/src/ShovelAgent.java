@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,13 +32,19 @@ public class ShovelAgent extends Agent {
     private double capacidad;
     private String destinoMateriales;
     private long duracionPalada ;
-	private boolean recibiCancel=false;
+	private boolean recibiDisconfirm=false;
+	private Date deadline;
+	private ArrayList<AID> noEnviarCFP;
+	protected boolean esperandoConfirmacion=false;
+	private boolean recibiRefuseDeUnRequest=false;
 
     @Override
     protected void setup() {
+    	
         schedule = new Schedule();
         negotiations = new HashMap<>(); //aqui se almacena la info de las negociaciones
         Object[] args = getArguments();
+        noEnviarCFP = new ArrayList<AID>();
         if (args != null && args.length > 0) {
         	ubicacionInicial=(String) args[0]; 
         	capacidad=(double) args[1]; 
@@ -63,93 +70,99 @@ public class ShovelAgent extends Agent {
             public void action() {
                 ACLMessage msg = myReceive();
                 if (msg != null) {
-                    String convId = msg.getConversationId();
-                    NegotiationData data = negotiations.get(convId);
-                    if (data == null) {
-                        // Mensaje que no pertenece a ninguna negociación actual
-                        return;
-                    }
+                	if (msg.getReplyByDate()!=null && System.currentTimeMillis() > msg.getReplyByDate().getTime())  { 
+                		System.out.println("mensaje llego despues del repplybydate");
+                	} else {
+                		String convId = msg.getConversationId();
+                		NegotiationData data = negotiations.get(convId);
+                		if (data == null) {
+                			// Mensaje que no pertenece a ninguna negociación actual
+	                        return;
+	                    }
 
-                    switch (msg.getPerformative()) {
-                        case ACLMessage.PROPOSE:
-                            handlePropose(msg, data);
-                            break;
-                        case ACLMessage.REFUSE:
-                            handleRefuse(msg, data);
-                            break;
-                        case ACLMessage.INFORM:
-                            handleInform(msg, data);
-                            break;
-                        case ACLMessage.CANCEL:
-                            handleCancel(msg, data);
-                            break;
-                        default:
-                            // Podríamos manejar más casos (FAILURE, etc.)
-                            break;
-                    }
+	                    switch (msg.getPerformative()) {
+	                        case ACLMessage.PROPOSE:
+	                            handlePropose(msg, data);
+	                            break;
+	                        case ACLMessage.REFUSE:
+	                            handleRefuse(msg, data);
+	                            break;
+	                        case ACLMessage.CONFIRM:
+	                            handleConfirm(msg, data);
+	                            break;
+	                        case ACLMessage.DISCONFIRM:
+	                            handleDisconfirm(msg, data);
+	                            break;
+	                        default:
+	                            System.out.println(msg.toString());
+	                            break;
+	                    }
 
-                    // Si ya se recibieron todas las respuestas y no hay decisión tomada, 
-                    // forzamos la decisión (aunque el deadline no haya llegado todavía).
-                    if (!data.isDecisionMade 
-                        && (data.numResponses >= data.numReceivers)) {
-                    	CsvLogger.logMessage(
-                    			getLocalName(),
-                                "llegaron todas las respuestas. numero de trucks "+data.numReceivers+". numero de propuestas "+data.listaPropuestas.size(),
-                                "sin sender", 
-                                "sin receptores",
-                                "sin performative",
-                                "sin conversationID",
-                                "sin contenido"
-                        );
-                    	if (!data.listaPropuestas.isEmpty()) {
-                    		decideAndSendAcceptReject(data);
-                    		
-                    	} else {
-                    		data.isDecisionMade=true;
-                    		isNegotiating=false;
-                    		negociacionFinalizadaSinGanadores=true;
-                    		data.finNegociacion=System.currentTimeMillis();
-                    		data.motivoFinNegociacion="No hubieron propuestas";
-                    		CsvLogger.logMessage(
-                            		getLocalName(),
-                                    " - Negociacion " + convId + " finalizada. No hubieron propuestas.",
-                                    "sin sender",
-                                    "sin receptores",
-                                    "sin performative",
-                                    convId,
-                                    "sin contenido"
-                            );
-                    		CsvNegotiationsLogger.logNegotiation(
-                            		getLocalName(), data                                
-                            );
-                    		
-                    	}
-                        
-                    }
+	                    // Si ya se recibieron todas las respuestas y no hay decisión tomada, 
+	                    // forzamos la decisión (aunque el deadline no haya llegado todavía).
+	                    
+	                    if (!data.isDecisionMade 
+	                        && (data.numResponses == data.numReceivers) && !esperandoConfirmacion) {
+	                    	CsvLogger.logMessage(
+	                    			getLocalName(),
+	                                "llegaron todas las respuestas. numero de trucks "+data.numReceivers+". numero de propuestas "+data.listaPropuestas.size(),
+	                                "sin sender", 
+	                                "sin receptores",
+	                                "sin performative",
+	                                "sin conversationID",
+	                                "sin contenido"
+	                        );
+	                    	if (!data.listaPropuestas.isEmpty()) {
+	                    		decideAndSendAcceptReject(data);
+	                    		
+	                    	} else {
+	                    		data.isDecisionMade=true;
+	                    		isNegotiating=false;
+	                    		noEnviarCFP.clear();
+	                    		esperandoConfirmacion=false;
+	                    		negociacionFinalizadaSinGanadores=true;
+	                    		data.finNegociacion=System.currentTimeMillis();
+	                    		data.motivoFinNegociacion="No hubieron propuestas";
+	                    		CsvLogger.logMessage(
+	                            		getLocalName(),
+	                                    " - Negociacion " + convId + " finalizada. No hubieron propuestas.",
+	                                    "sin sender",
+	                                    "sin receptores",
+	                                    "sin performative",
+	                                    convId,
+	                                    "sin contenido"
+	                            );
+	                    		CsvNegotiationsLogger.logNegotiation(
+	                            		getLocalName(), data                                
+	                            );
+	                    		
+	                    	}
+	                        
+	                    }
 
-                    // Si la negociación está decidida, revisamos si finalizó
-                    if (data.isFinished()) {
-                        negotiations.remove(convId);
-                        isNegotiating = false;
-                        data.isDecisionMade=true;
-                        /*
-                        System.out.println(getLocalName()
-                            + " - Negociación " + convId + " finalizada.");
-                            */
-                        CsvLogger.logMessage(
-                        		getLocalName(),
-                                " - Negociacion " + convId + " finalizada.",
-                                "sin sender",
-                                "sin receptores",
-                                "sin performative",
-                                convId,
-                                "sin contenido"
-                        );
-                        /*
-                        CsvNegotiationsLogger.logNegotiation(
-                        		getLocalName(), data                                
-                        );*/
-                    }
+	                    // Si la negociación está decidida, revisamos si finalizó
+	                    
+	                    if (data.isFinished()) {
+	                        negotiations.remove(convId);
+	                        isNegotiating = false;
+	                        esperandoConfirmacion=false;
+	                        data.isDecisionMade=true;
+	                		//noEnviarCFP.clear();
+
+	                        CsvLogger.logMessage(
+	                        		getLocalName(),
+	                                " - Negociacion " + convId + " finalizada.",
+	                                "sin sender",
+	                                "sin receptores",
+	                                "sin performative",
+	                                convId,
+	                                "sin contenido"
+	                        );
+	                       
+	                    }
+                	
+		            }
+                    
                 } else {
                     block();
                 }
@@ -173,18 +186,35 @@ public class ShovelAgent extends Agent {
             String receivers = getReceiverString(msg);
             String performative = ACLMessage.getPerformative(msg.getPerformative());
             String conversationId = (msg.getConversationId() != null) ? msg.getConversationId() : "";
+            Date replyByDate = msg.getReplyByDate();
+            Date currentTime = new Date();
+            String content="";
+
+          
+                 
+          
             DocumentoOfertaPropuesta dop=null;;
            
 			try {
 				dop = (DocumentoOfertaPropuesta) msg.getContentObject();
+				if (dop!=null && dop.getContent()!=null) {
+	            	content = dop.getContent();	
+	            } else {
+	            	content = "dop es null o no hay contenido";
+	            }
 			} catch (UnreadableException e) {
 				// TODO Auto-generated catch block
 				 System.out.println("msg received "+sender+" / "+performative);
 				e.printStackTrace();
 			}
-            String content="";;
+            
+            
+
             switch (msg.getPerformative()) {
             case ACLMessage.PROPOSE:
+            	if (currentTime.after(deadline)) {
+                    System.out.println(this.getLocalName()+": Mensaje recibido después del límite de tiempo (replyBy: " + deadline + ")");
+                }
             	content = "hora de llegada estimada propuesta por camion "
             				+Utilidades.longToHHMMSS(dop.getHoraLlegadaApalaPropuestoPorCamion())
             				+" hora inicio viaje vacio "+Utilidades.longToHHMMSS(dop.getHoraInicioViajeVacioPropuestoPorCamion())
@@ -194,8 +224,7 @@ public class ShovelAgent extends Agent {
             case ACLMessage.REFUSE:
                 
                 break;
-            case ACLMessage.INFORM:
-                
+            case ACLMessage.DISCONFIRM:
                 break;
             default:
                 // Podríamos manejar más casos (FAILURE, etc.)
@@ -210,7 +239,7 @@ public class ShovelAgent extends Agent {
                     "sin receivers",
                     performative,
                     conversationId,
-                    content
+                  content
             );
         }
         return msg;
@@ -262,8 +291,9 @@ public class ShovelAgent extends Agent {
      * Crea también un WakerBehaviour para controlar el deadline.
      */
     private void startNegotiation() {
+    	deadline = new Date(System.currentTimeMillis() + ParametrosConfiguracion.DEADLINE_MS);
         isNegotiating = true;
-        String conversationId = "CNP-" + System.currentTimeMillis();
+        String conversationId = this.getLocalName()+" CNP-" + System.currentTimeMillis();
         NegotiationData data = new NegotiationData(conversationId, ParametrosConfiguracion.NUMERODETRUCKS);  
         negotiations.put(conversationId, data);
         CsvLogger.logMessage(
@@ -273,12 +303,14 @@ public class ShovelAgent extends Agent {
                 "sin receptores",
                 "sin performative",
                 conversationId,
-                " (deadline: " + ParametrosConfiguracion.DEADLINE_MS + " ms)"
+                " deadline: " + deadline+" ("+ParametrosConfiguracion.DEADLINE_MS + " ms)"
         );
  
         // Enviamos CFP a los trucks
         ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
         cfp.setConversationId(conversationId);
+        cfp.setReplyByDate(deadline);
+
         //cfp.setContent("AvailableTime=" + hour + ":" + String.format("%02d", minute));
         DocumentoOfertaPropuesta dop = generaContenidoCFP();
         System.out.println(getLocalName()+" hora de inicio ofertada por pala "
@@ -294,9 +326,18 @@ public class ShovelAgent extends Agent {
         
         for (int i = 0; i < ParametrosConfiguracion.NUMERODETRUCKS; i++) {
         	String truckName = "Truck"+i;
+        	
         	cfp.addReceiver(new AID(truckName, AID.ISLOCALNAME));
         }
         data.inicioDeNegociacion = System.currentTimeMillis();
+        
+        //remuevo a aquellos que disconfirmaron esta negociacion
+        for (int i=0;i<noEnviarCFP.size();i++) {
+        	cfp.removeReceiver(noEnviarCFP.get(i));
+        	CsvLogger.logMessage(this.getLocalName(), "remover agente del CFP", "no sender", "no receiver", "no performative", conversationId, "removi a "+noEnviarCFP.get(i).getLocalName()+" por que antes envio disconfirm");
+        }
+       
+        	
         mySend(cfp);
 
         // *** WakerBehaviour *** para manejar el deadline de 4000 ms
@@ -327,6 +368,8 @@ public class ShovelAgent extends Agent {
                 	} else {
                 		data.isDecisionMade=true;
                 		isNegotiating=false;
+                		esperandoConfirmacion=false;
+                		noEnviarCFP.clear();
                 		negociacionFinalizadaSinGanadores=true;
                 		data.finNegociacion=System.currentTimeMillis();
                 		data.motivoFinNegociacion="deadline cumplido. No hubieron propuestas";
@@ -347,7 +390,9 @@ public class ShovelAgent extends Agent {
                     // Revisamos si eso la deja finalizada
                     if (nd.isFinished()) {
                         negotiations.remove(conversationId);
-                        isNegotiating = false;                       
+                        isNegotiating = false;   
+                        esperandoConfirmacion=false;
+                		noEnviarCFP.clear();
                         System.out.println(getLocalName()
                             + " - Negociación " + conversationId + " finalizada (deadline).");
                     }
@@ -360,9 +405,12 @@ public class ShovelAgent extends Agent {
     // Métodos de manejo de mensajes
     // ------------------------------------------------------------------------------------
     private void handlePropose(ACLMessage propose, NegotiationData data) {
-        data.numResponses++;
-        data.numProposes++;
-       // int arrival = parseArrivalTime(propose.getContent());
+    	if (data.conversationId==propose.getConversationId()) {
+    		data.numResponses++;
+            data.numProposes++;
+           	
+    	}
+        // int arrival = parseArrivalTime(propose.getContent());
        // data.proposals.put(propose.getSender(), arrival);
         DocumentoOfertaPropuesta dop;
 		try {
@@ -385,22 +433,36 @@ public class ShovelAgent extends Agent {
     }
 
     private void handleRefuse(ACLMessage refuse, NegotiationData data) {
-        data.numResponses++;
-        data.numRefuses++;
-        /*
-        System.out.println(getLocalName() + " - Recibido REFUSE de "
-                           + refuse.getSender().getLocalName()
-                           + ": " + refuse.getContent());
-         */
+    	if (data.conversationId==refuse.getConversationId()) {
+    		data.numResponses++;
+            data.numRefuses++;
+    	}
+    	if (esperandoConfirmacion) {
+    		this.isNegotiating=false;
+    		esperandoConfirmacion=false;
+    		//negociacionFinalizadaSinGanadores=true; //esto no esta bien. 
+    		recibiRefuseDeUnRequest=true;
+    		noEnviarCFP.clear();
+    		data.isDecisionMade = true;
+    		data.finNegociacion=System.currentTimeMillis();
+    		data.motivoFinNegociacion="recibi refuse despues de request";
+    		CsvNegotiationsLogger.logNegotiation(
+            		getLocalName(), data                                
+            );
+    	}
+    	
+    
     }
 
-    private void handleInform(ACLMessage inform, NegotiationData data) {
+    private void handleConfirm(ACLMessage confirm, NegotiationData data) {
         data.numInforms++;
         DocumentoOfertaPropuesta dop;
 		try {
-			dop = (DocumentoOfertaPropuesta) inform.getContentObject();
+			dop = (DocumentoOfertaPropuesta) confirm.getContentObject();
 	        AgregaGanador(dop);
+			this.isNegotiating=false;
     		negociacionFinalizadaSinGanadores=false;
+    		noEnviarCFP.clear();
     		data.isDecisionMade = true;
     		data.finNegociacion=System.currentTimeMillis();
     		data.motivoFinNegociacion="recibi inform. ganador acepto";
@@ -413,19 +475,21 @@ public class ShovelAgent extends Agent {
 		}        
    }
     
-    private void handleCancel(ACLMessage msg, ShovelAgent.NegotiationData data) {
+    private void handleDisconfirm(ACLMessage msg, ShovelAgent.NegotiationData data) {
 		this.isNegotiating=false;
+		esperandoConfirmacion=false;
 		data.isDecisionMade=true;
-		data.motivoFinNegociacion="recibi cancel";
+		data.motivoFinNegociacion="recibi Disconfirm";
+		noEnviarCFP.add(msg.getSender());
 		data.finNegociacion=System.currentTimeMillis();
 		data.numCancels++;
-		recibiCancel = true;
+		recibiDisconfirm=true;
 		CsvNegotiationsLogger.logNegotiation(
         		getLocalName(), data                                
         );
 		CsvLogger.logMessage(
         		getLocalName(),
-                " - Negociacion " + "convId" + " finalizada. Recibi cancel. Debo reiniciar negociacion",
+                " - Negociacion " + "convId" + " finalizada. Recibi Disconfirm. Debo reiniciar negociacion",
                 "sin sender",
                 "sin receptores",
                 "sin performative",
@@ -465,11 +529,11 @@ public class ShovelAgent extends Agent {
      // Mandamos ACCEPT a bestTruck,
 		data.listaPropuestas.remove(propuestaGanadora);
 		data.ganador=propuestaGanadora.getSender().getLocalName();
-		ACLMessage accept = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-        accept.setConversationId(data.conversationId);
-        accept.addReceiver(propuestaGanadora.getSender());
+		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+        request.setConversationId(data.conversationId);
+        request.addReceiver(propuestaGanadora.getSender());
         try {
-        	accept.setContentObject(propuestaGanadora.getContentObject());
+        	request.setContentObject(propuestaGanadora.getContentObject());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -477,7 +541,8 @@ public class ShovelAgent extends Agent {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-        mySend(accept);
+        mySend(request);
+        esperandoConfirmacion=true;
 
 
        //  REJECT a los demás //porque si utilizo el reply anterior, le enviaba mensaje al best proposal
@@ -491,29 +556,7 @@ public class ShovelAgent extends Agent {
         
     }
 
-    // ------------------------------------------------------------------------------------
-    // Utilidades
-    // ------------------------------------------------------------------------------------
-   /*
-    private int parseArrivalTime(String content) {
-        try {
-            // "ArrivalTime=8:35"
-            String timePart = content.split("=")[1];
-            String[] parts = timePart.split(":");
-            int hh = Integer.parseInt(parts[0]);
-            int mm = Integer.parseInt(parts[1]);
-            return hh * 60 + mm;
-        } catch (Exception e) {
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    private String arrivalToString(int totalMins) {
-        int hh = totalMins / 60;
-        int mm = totalMins % 60;
-        return hh + ":" + String.format("%02d", mm);
-    }
-    */
+    
 
     @Override
     protected void takeDown() {
@@ -528,18 +571,31 @@ public class ShovelAgent extends Agent {
 		dop.setCapacidadPala(capacidad);
 		dop.setDuracionPalada(duracionPalada);
 		
-		dop.setHoraInicioCargaOfertadaPorPala(schedule.getHoraFinUltimoSlot(this.getLocalName()));
+		if (recibiDisconfirm || recibiRefuseDeUnRequest) {
+			dop.setHoraInicioCargaOfertadaPorPala(ultima_HoraInicioCargaOfertadaPorPalaNegociada);//
+			recibiDisconfirm=false;
+			recibiRefuseDeUnRequest=false;
+		} else {
+			if (negociacionFinalizadaSinGanadores) {
+				dop.setHoraInicioCargaOfertadaPorPala(ultima_HoraInicioCargaOfertadaPorPalaNegociada+60000);//60 segundos mas  mas
+				negociacionFinalizadaSinGanadores=false;
+			} else {
+				dop.setHoraInicioCargaOfertadaPorPala(schedule.getHoraFinUltimoSlot(this.getLocalName()));
 
-		
-		if (negociacionFinalizadaSinGanadores) {
-			dop.setHoraInicioCargaOfertadaPorPala(ultima_HoraInicioCargaOfertadaPorPalaNegociada+60000);//1 minuto mas
-			negociacionFinalizadaSinGanadores=false;
+			}
 		}
 		
-		if (recibiCancel) {
-			dop.setHoraInicioCargaOfertadaPorPala(ultima_HoraInicioCargaOfertadaPorPalaNegociada+60000);//1 minuto mas
-			recibiCancel=false;
-		} 
+        Slot previo = this.schedule.buscarSlotAnterior(dop.getHoraInicioCargaOfertadaPorPala());
+        if (previo==null) {
+			dop.setTiempoInactivoDesdeActividadAnterior(0);
+		} else {
+			dop.setTiempoInactivoDesdeActividadAnterior(dop.getHoraInicioCargaOfertadaPorPala()-previo.getHoraFin());
+		}
+		
+		
+		
+		
+		
 		
 		ultima_HoraInicioCargaOfertadaPorPalaNegociada=dop.getHoraInicioCargaOfertadaPorPala();
 		//System.out.println(this.getLocalName()+" ofertando "+dop.getHoraInicioCargaOfertadaPorPala()+" - "+Utilidades.longToHHMMSS(dop.getHoraInicioCargaOfertadaPorPala()));
@@ -551,6 +607,16 @@ public class ShovelAgent extends Agent {
     
     public boolean HayTareaPorAsignar() {
 		// TODO Auto-generated method stub
+    	if (this.ultima_HoraInicioCargaOfertadaPorPalaNegociada<=ParametrosConfiguracion.SEGUNDO_FINAL_HORARIO) {
+    		return true;
+    	} else {
+    		System.out.println(this.getLocalName()+" mi horario supera el turno");
+			this.doSuspend();
+    		return false;
+    	}
+    		
+    	
+    	/* esta es la version anterior
 		if (!schedule.horarioSuperaTurno()) {
 			return true;
 		} else {
@@ -558,6 +624,7 @@ public class ShovelAgent extends Agent {
 			this.doSuspend();
 			return false;
 		}
+		*/
 		
 	}
     

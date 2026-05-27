@@ -1,15 +1,19 @@
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.io.FileWriter;
 
 import org.jgrapht.Graph;
@@ -26,10 +30,14 @@ import org.jgrapht.graph.DefaultWeightedEdge;
  *  - REJECT_PROPOSAL
  */
 public class TruckAgent extends Agent {
+	
+	private CopyOnWriteArrayList<ACLMessage> listaCFPs;
 	//horario
     private Schedule schedule;
 
     private Random random;
+    private Map<String, Integer> lastRejections;
+
 
     // ------------------------------------------------------------------
     // (Opcional) Bandera para habilitar o deshabilitar aprendizaje
@@ -44,9 +52,9 @@ public class TruckAgent extends Agent {
     private Map<String, double[]> qTable;  
 
     // Parámetros de Q-learning
-    private double alpha = 0.1;      // Tasa de aprendizaje
-    private double gamma = 0.9;      // Factor de descuento
-    private double epsilon = 0.1;    // Probabilidad de exploración
+    private double alpha = 0.01;      // Tasa de aprendizaje
+    private double gamma = 0.98;      // Factor de descuento
+    private double epsilon = 0.05;    // Probabilidad de exploración
 
     // Guardamos la última acción elegida por conversación ID
     private Map<String, Integer> lastActionChosen;
@@ -70,10 +78,12 @@ public class TruckAgent extends Agent {
 
     @Override
     protected void setup() {
+        lastRejections = new HashMap<>(); // Inicializa el mapa de rechazos
+
     	schedule = new Schedule();
         random = new Random();
         episodeRewards = new ArrayList<>();
-
+        listaCFPs = new CopyOnWriteArrayList<ACLMessage>();
 
         // Lectura de argumentos (opcional) para habilitar/deshabilitar aprendizaje
         Object[] args = getArguments();
@@ -96,6 +106,16 @@ public class TruckAgent extends Agent {
         // Inicializamos estructuras para RL
         qTable = new HashMap<>();
         lastActionChosen = new HashMap<>();
+        
+        addBehaviour(new TickerBehaviour(this, 1000) { //considerar este valor junto con el tiempo antes que se debe contestar a un deadline
+            @Override
+            protected void onTick() {
+                checkAndRespondToCFPs();
+                //checkAndRemoveCFPS();
+            }
+
+			
+        });
 
         // Añadimos un comportamiento cíclico que atenderá TODOS los mensajes
         addBehaviour(new CyclicBehaviour(this) {
@@ -108,8 +128,8 @@ public class TruckAgent extends Agent {
                         case ACLMessage.CFP:
                             handleCfp(msg);
                             break;
-                        case ACLMessage.ACCEPT_PROPOSAL:
-                            handleAcceptProposal(msg);
+                        case ACLMessage.REQUEST:
+                            handleRequest(msg);
                             break;
                         case ACLMessage.REJECT_PROPOSAL:
                             handleRejectProposal(msg);
@@ -123,9 +143,156 @@ public class TruckAgent extends Agent {
                 }
             }
         });
+        
+        addBehaviour(new TickerBehaviour(this, 5000) { // Se ejecuta cada 5 segundos
+            @Override
+            protected void onTick() {
+                resetRejectionsPeriodically();
+            }
+        });
+        
+        
     }
     
-    public ACLMessage myReceive() {
+    private void resetRejectionsPeriodically() {
+        for (String shovel : lastRejections.keySet()) {
+            int currentRejections = lastRejections.get(shovel);
+            if (currentRejections > 0) {
+                lastRejections.put(shovel, currentRejections - 1); // Reduce el número de rechazos con el tiempo
+            }
+        }
+    }
+    private void checkAndRemoveCFPS() {
+		// TODO Auto-generated method stub
+		int cfpsDeadlineVencidoYSinPropuesta=0;
+		DocumentoOfertaPropuesta dop;
+		for (ACLMessage cfp : listaCFPs) {
+			System.out.println(this.getLocalName()+" "+cfp.getSender().getLocalName()+" id:"+cfp.getConversationId());
+			/*
+			try {
+				dop = (DocumentoOfertaPropuesta) cfp.getContentObject();
+				if (System.currentTimeMillis() > cfp.getReplyByDate().getTime() && dop.getHoraInicioCargaPropuestoPorCamion()<=0) {
+					cfpsDeadlineVencidoYSinPropuesta++;
+				}
+			} catch (UnreadableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			*/
+
+			
+		}
+		System.out.println(this.getLocalName()+" cantidad de CFPS fuera de su deadline y sin propuesta "+cfpsDeadlineVencidoYSinPropuesta+ "total de CFPs "+listaCFPs.size());
+	}
+    private void checkAndRespondToCFPs() {
+    	//System.out.println( this.getLocalName()+"CFPS guardados "+listaCFPs.size());
+        Iterator<ACLMessage> iterator = listaCFPs.iterator();
+        while (iterator.hasNext()) {
+        	ACLMessage cfp = iterator.next();
+        	try {
+				DocumentoOfertaPropuesta dop = (DocumentoOfertaPropuesta) cfp.getContentObject();
+				if (dop.getHoraLlegadaApalaPropuestoPorCamion()==0){// solo para aquellos CFPs que aun no han enviado propuesta
+					//System.out.println( this.getLocalName()+" CFP sin propuesta:"+  dop.toString());
+					if (System.currentTimeMillis() >= cfp.getReplyByDate().getTime()  - 2000) { //1000 es en milisegundos y quiere decir que respondera 1000 ms antes del deadline
+		                respondToCfp(cfp);
+		                //iterator.remove();
+		            }
+				}
+			} catch (UnreadableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	
+            
+        }
+    }
+    
+    private void respondToCfp(ACLMessage cfp) {
+		// TODO Auto-generated method stub
+    	//System.out.println("voy a responder CFP");
+    	 String shovelName = cfp.getSender().getLocalName();
+         
+         /*
+         System.out.println(getLocalName() + " - CFP recibido de "
+                            + shovelName + ". Contenido: " + cfp.getContent());
+ 		*/
+         // Creamos respuesta
+         ACLMessage response = cfp.createReply();
+ 		DocumentoOfertaPropuesta dop;
+         try {
+ 			dop = (DocumentoOfertaPropuesta) cfp.getContentObject();                
+             //System.out.println(controller.getLocalName() + " hora ofertada de inicio de carga"+ccfp.getHoraInicioCarga());
+             generaPropuesta(dop);
+             
+             /*
+              * si generaPropuesta==-1
+              *    se envia REFUSE
+              * de lo contrario
+              *    si RL dice que no
+              *        se envia REFUSE
+              *    de lo contrario
+              *        se envia PROPOSE   
+              */
+             try {
+ 				response.setContentObject(dop);
+             	cfp.setContentObject(dop);
+
+ 			} catch (IOException e) {
+ 				// TODO Auto-generated catch block
+ 				e.printStackTrace();
+ 			}
+             if (dop.getHoraLlegadaApalaPropuestoPorCamion()==-1) {
+             	response.setPerformative(ACLMessage.REFUSE);
+             	dop.setContent("REFUSE antes de REQUEST. No puedo cumplir con lo solicitado");
+             	response.setContentObject(dop);
+             	removerCFP(cfp.getConversationId());
+             	mySend(response);
+                 return;
+             } else {
+             	if (learningEnabled) {
+             		// Con RL: Obtenemos (o creamos) la Q para este shovel
+                     double[] qValues = qTable.getOrDefault(shovelName, new double[]{0.0, 0.0});
+                     qTable.putIfAbsent(shovelName, qValues);
+
+                     // Elegimos acción (0=REFUSE, 1=PROPOSE) con e-greedy
+                     int action = chooseActionEGreedy(qValues);
+
+                     // Guardamos la acción en lastActionChosen (usamos la conversationId)
+                     lastActionChosen.put(cfp.getConversationId(), action);
+
+                     if (action == 0 ) {
+                         // REFUSE
+                         response.setPerformative(ACLMessage.REFUSE);
+                      	dop.setContent("REFUSE por RL. me has rechazado mucho anteriormente");
+                     	response.setContentObject(dop);
+
+                        // System.out.println(getLocalName()+": envio REFUSE a pesar de que podia enviar Propose. Razon RL");
+                     } else {
+                         // PROPOSE
+                         response.setPerformative(ACLMessage.PROPOSE);
+                         //response.setContent(generateArrivalTime(cfp.getContent()));
+                     }
+             	} else {
+             		response.setPerformative(ACLMessage.PROPOSE);
+             	}
+                 mySend(response);
+             }
+             
+            
+
+             
+             
+         } catch (UnreadableException e1) {
+             e1.printStackTrace();
+         } catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		
+	}
+
+	public ACLMessage myReceive() {
         ACLMessage msg = super.receive();
         if (msg != null) {
             // Extraemos datos
@@ -191,121 +358,144 @@ public class TruckAgent extends Agent {
     // 1. Lógica para procesar CFP (Call for Proposal)
     // --------------------------------------------------------------------------------------
     private void handleCfp(ACLMessage cfp) {
-        String shovelName = cfp.getSender().getLocalName();
-        /*
-        System.out.println(getLocalName() + " - CFP recibido de "
-                           + shovelName + ". Contenido: " + cfp.getContent());
-		*/
-        // Creamos respuesta
-        ACLMessage response = cfp.createReply();
-		DocumentoOfertaPropuesta dop;
-        try {
-			dop = (DocumentoOfertaPropuesta) cfp.getContentObject();                
-            //System.out.println(controller.getLocalName() + " hora ofertada de inicio de carga"+ccfp.getHoraInicioCarga());
-            generaPropuesta(dop);
-            
-            /*
-             * si generaPropuesta==-1
-             *    se envia REFUSE
-             * de lo contrario
-             *    si RL dice que no
-             *        se envia REFUSE
-             *    de lo contrario
-             *        se envia PROPOSE   
-             */
-            try {
-				response.setContentObject(dop);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            if (dop.getHoraLlegadaApalaPropuestoPorCamion()==-1) {
-            	response.setPerformative(ACLMessage.REFUSE);
-            	mySend(response);
-                return;
-            } else {
-            	if (learningEnabled) {
-            		// Con RL: Obtenemos (o creamos) la Q para este shovel
-                    double[] qValues = qTable.getOrDefault(shovelName, new double[]{0.0, 0.0});
-                    qTable.putIfAbsent(shovelName, qValues);
-
-                    // Elegimos acción (0=REFUSE, 1=PROPOSE) con e-greedy
-                    int action = chooseActionEGreedy(qValues);
-
-                    // Guardamos la acción en lastActionChosen (usamos la conversationId)
-                    lastActionChosen.put(cfp.getConversationId(), action);
-
-                    if (action == 0 ) {
-                        // REFUSE
-                        response.setPerformative(ACLMessage.REFUSE);
-                        //response.setContent("No me interesa (RL - REFUSE).");
-                       // System.out.println(getLocalName()+": envio REFUSE a pesar de que podia enviar Propose. Razon RL");
-                    } else {
-                        // PROPOSE
-                        response.setPerformative(ACLMessage.PROPOSE);
-                        //response.setContent(generateArrivalTime(cfp.getContent()));
-                    }
-            	} else {
-            		response.setPerformative(ACLMessage.PROPOSE);
-            	}
-            	
-                mySend(response);
-            }
-            
-            /*
-            if (!learningEnabled) {
-                // Si NO estamos usando RL, siempre enviamos PROPOSE (por ejemplo)
-                response.setPerformative(ACLMessage.PROPOSE);
-                response.setContent(generateArrivalTime(cfp.getContent()));
-                mySend(response);
-                return;
-            }
-            */
-
-            
-            
-        } catch (UnreadableException e1) {
-            e1.printStackTrace();
-        }
+     	listaCFPs.add(cfp); //
+        
 
         
     }
 
-    // --------------------------------------------------------------------------------------
+    private boolean hayUnCFPmasConveniente(ACLMessage cfp) {
+		// TODO Auto-generated method stub
+    	
+    
+    	
+        DocumentoOfertaPropuesta dopLocal=null;
+        DocumentoOfertaPropuesta dopNuevo=null;
+        boolean hayMejorCFP=false;
+		int numeroDeCFPsMejores=0;
+
+		try {
+			dopNuevo = (DocumentoOfertaPropuesta) cfp.getContentObject();
+			//System.out.println(this.getLocalName()+"hay "+listaCFPs.size()+" CFPs");
+			for (ACLMessage localCFP : this.listaCFPs) {
+	    		dopLocal = (DocumentoOfertaPropuesta) localCFP.getContentObject();
+	    		if (dopLocal.getHoraInicioCargaPropuestoPorCamion()>=0) { //solo considera CFP's que se les ha enviado propuesta
+	    			if (overlaps(dopLocal, dopNuevo)) {
+		            	//duracion (costo actividad) = duracionViajeVacio + duracionViajeCargado
+		            	long duracionActividadesDopLocal = dopLocal.getHoraLlegadaApalaPropuestoPorCamion()-dopLocal.getHoraInicioViajeVacioPropuestoPorCamion()
+		            			+dopLocal.getHoraLlegadaAlugarDeDescargaPropuestoPorCamion()-dopLocal.getHoraInicioViajeCargadoPropuestoPorCamion();
+		            	long duracionActividadesDopNuevo = dopNuevo.getHoraLlegadaApalaPropuestoPorCamion()-dopNuevo.getHoraInicioViajeVacioPropuestoPorCamion()
+		            			+dopNuevo.getHoraLlegadaAlugarDeDescargaPropuestoPorCamion()-dopNuevo.getHoraInicioViajeCargadoPropuestoPorCamion();
+		            	//System.out.println("overlaps encontrado. costo local:"+duracionActividadesDopLocal+" costo nuevo"+duracionActividadesDopNuevo);
+
+		            	if (duracionActividadesDopLocal<duracionActividadesDopNuevo) {
+		            		//System.out.println(this.getLocalName()+" el DOP nuevo posee un costo de  "+duracionActividadesDopNuevo+" y el DOP almacenado un costo de "+duracionActividadesDopLocal);
+		            		hayMejorCFP = true;
+		            		numeroDeCFPsMejores++;
+		            		Random random = new Random();
+		                    return random.nextBoolean();
+		            	}
+		                
+		            }
+	    		}
+	            
+	        }
+		} catch (UnreadableException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(this.getLocalName()+" hay "+numeroDeCFPsMejores+" cpfs mejores");
+		return hayMejorCFP;
+		
+	}
+
+	private boolean overlaps(DocumentoOfertaPropuesta dopLocal, DocumentoOfertaPropuesta dopNuevo) {
+		// TODO Auto-generated method stub
+		if (dopLocal.getHoraInicioViajeVacioPropuestoPorCamion()<=dopNuevo.getHoraInicioViajeVacioPropuestoPorCamion()&&dopNuevo.getHoraInicioViajeVacioPropuestoPorCamion()<=dopLocal.getHoraFinDeDescargaPropuestoPorCamion()) {
+			return true;
+		}
+		
+		if (dopLocal.getHoraInicioViajeVacioPropuestoPorCamion()<=dopNuevo.getHoraFinDeDescargaPropuestoPorCamion()&&dopNuevo.getHoraFinDeDescargaPropuestoPorCamion()<=dopLocal.getHoraFinDeDescargaPropuestoPorCamion()) {
+			return true;
+		}
+		
+		
+		
+		return false;
+	}
+
+	// --------------------------------------------------------------------------------------
     // 2. Lógica para procesar ACCEPT_PROPOSAL
     // --------------------------------------------------------------------------------------
-    private void handleAcceptProposal(ACLMessage acceptMsg) {
-       // System.out.println(getLocalName() + " - ¡Mi propuesta fue ACEPTADA! ");
-                         //  + acceptMsg.getContent());
-
+    private void handleRequest(ACLMessage request) {
+      
         // Actualizamos la Q-table sólo si el aprendizaje está habilitado
         if (learningEnabled) {
-            String shovelName = acceptMsg.getSender().getLocalName();
+            String shovelName = request.getSender().getLocalName();
 
             // Recuperar la acción que habíamos elegido para este conversationId
-            int action = lastActionChosen.getOrDefault(acceptMsg.getConversationId(), 1);
+            int action = lastActionChosen.getOrDefault(request.getConversationId(), 1);
 
-            double reward = +1.0; // recompensa positiva
+            double reward = +5.0; // recompensa positiva
             updateQValue(shovelName, action, reward);
         }
         // agregamos al schedule
-        // Enviamos INFORM indicando que cumpliremos
         
-        ACLMessage inform = acceptMsg.createReply();
-        inform.setPerformative(ACLMessage.INFORM);
         DocumentoOfertaPropuesta dop=null;
         try {
-        	dop=(DocumentoOfertaPropuesta) acceptMsg.getContentObject();
+        	dop=(DocumentoOfertaPropuesta) request.getContentObject();
         	if(schedule.estaCamionOcupado(dop)) {
-        		System.out.println(this.getLocalName()+": ya se ocupó el slot, debo rechazar");
-        		ACLMessage cancel = acceptMsg.createReply();
-        		cancel.setPerformative(ACLMessage.CANCEL);
-        		//cancel.setContent("ya se ocupó el slot, debo rechazar");
-        		mySend(cancel);
+        		//System.out.println(this.getLocalName()+": ya se ocupó el slot, debo rechazar");
+        		ACLMessage refuse = request.createReply();
+        		refuse.setPerformative(ACLMessage.REFUSE);
+        		dop.setContent("el camion esta ocupado (REFUSE para REQUEST)");
+        		refuse.setContentObject(dop);
+
+        		mySend(refuse);
+    	        removerCFP(request.getConversationId());
+
+
         	} else {
-        		inform.setContentObject(dop);
-        		agregaGanador(dop);
-        		 mySend(inform);
+        		
+        		if (dop.getTiempoInactivoDesdeActividadAnterior()>60000) {
+        			ACLMessage confirm = request.createReply();
+            		confirm.setPerformative(ACLMessage.CONFIRM);
+            		dop.setContent("confirmo porque idle time de la shovel es mayor a 60000ms");
+            		confirm.setContentObject(dop);
+            		agregaGanador(dop);
+            		removerCFPsOverlaps(dop);
+        	        removerCFP(request.getConversationId());
+
+            		mySend(confirm);
+
+        		} else {
+        			if (hayUnCFPmasConveniente(request)) {
+                    	//System.out.println(this.getLocalName()+" hay un CFP mas conveniente"); //esto quiere decir que el truckagent prefiere esperar a otra negociacion mas conveniente
+                    	ACLMessage disconfirm = request.createReply();
+                		disconfirm.setPerformative(ACLMessage.DISCONFIRM);
+                		dop.setContent("hay un CFP mas conveniente");
+                		disconfirm.setContentObject(dop);
+                		removerCFP(request.getConversationId()); //probando
+                		mySend(disconfirm);
+
+                    } else {
+                    	ACLMessage confirm = request.createReply();
+                		confirm.setPerformative(ACLMessage.CONFIRM);
+                		dop.setContent("confirmo porque no tengo un CFP mas conveniente");
+                		confirm.setContentObject(dop);
+                		removerCFPsOverlaps(dop);
+
+            	        removerCFP(request.getConversationId());
+
+                		agregaGanador(dop);
+                		mySend(confirm);
+
+                    }
+        		}
+        		
+
+        		
+        		
         	}
             
 
@@ -318,7 +508,24 @@ public class TruckAgent extends Agent {
        
     }
 
-    // --------------------------------------------------------------------------------------
+    private void removerCFPsOverlaps(DocumentoOfertaPropuesta dopNuevo) {
+		// TODO Auto-generated method stub
+    	DocumentoOfertaPropuesta dopLocal;
+    	for (ACLMessage cfp : listaCFPs) {
+    		try {
+				dopLocal = (DocumentoOfertaPropuesta) cfp.getContentObject();
+				if (overlaps(dopNuevo, dopLocal)) {
+        	        removerCFP(cfp.getConversationId());
+				}
+			} catch (UnreadableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+		
+	}
+
+	// --------------------------------------------------------------------------------------
     // 3. Lógica para procesar REJECT_PROPOSAL
     // --------------------------------------------------------------------------------------
     private void handleRejectProposal(ACLMessage rejectMsg) {
@@ -329,15 +536,41 @@ public class TruckAgent extends Agent {
             String shovelName = rejectMsg.getSender().getLocalName();
 
             int action = lastActionChosen.getOrDefault(rejectMsg.getConversationId(), 1);
+            
+            // Obtener el número de rechazos previos de esta ShovelAgent
+            int numRechazos = lastRejections.getOrDefault(shovelName, 0);
 
-            double reward = -1.0; // penalización
+            lastRejections.put(shovelName, numRechazos + 1);
+
+            double reward = -0.1 * (numRechazos + 1); // Penalización aumenta con cada rechazo
             updateQValue(shovelName, action, reward);
         }
+        
+        
+        
+	        removerCFP(rejectMsg.getConversationId());
+
+		
+		
     }
 
     
 
-    // --------------------------------------------------------------------------------------
+    private void removerCFP(String idconversacion) {
+		// TODO Auto-generated method stub
+    		for (ACLMessage cfp : listaCFPs) {
+    			if (cfp.getConversationId().equals(idconversacion)) {
+    				listaCFPs.remove(cfp); // Funciona correctamente
+                }
+            }
+    	
+
+    		
+    	
+		
+	}
+
+	// --------------------------------------------------------------------------------------
     // 5. Métodos Auxiliares de RL (si learningEnabled=true)
     // --------------------------------------------------------------------------------------
 
@@ -371,8 +604,9 @@ public class TruckAgent extends Agent {
         double maxNextQ = Math.max(qValues[0], qValues[1]);
 
         double newQ = currentQ + alpha * (reward + gamma * maxNextQ - currentQ);
-        qValues[action] = newQ;
-
+        if (reward >= 0) {
+            qValues[action] = newQ; // Solo actualiza si hay nueva información
+        }
         // Almacenar de vuelta
         qTable.put(shovelName, qValues);
         
@@ -407,8 +641,34 @@ public class TruckAgent extends Agent {
 		// TODO Auto-generated method stub
 		dop.setIdCamion(this.getLocalName());
 		dop.setCantidadEstimadaDeMaterialATransportar(capacidadCamion);
+		calcularTiempos(dop);
+		if (schedule.estaCamionOcupado(dop)) {
+			//System.out.println("camion ocupado, retorno -1");
+			dop.setHoraLlegadaApalaPropuestoPorCamion(-1);
+			dop.setMotivoRefuse("camion ocupado");
+				
+		} else {
+			if (!schedule.camionPuedeRealizarCicloPropuesto(dop)) {
+				//System.out.println("camion no puede realizar ciclo propuesto, retorno -1");
+				dop.setHoraLlegadaApalaPropuestoPorCamion(-1);
+				dop.setMotivoRefuse("camion no puede realizar ciclo propuesto");
+			} else {
+				if (dop.getHoraInicioCargaPropuestoPorCamion()<dop.getHoraInicioCargaOfertadaPorPala()) {
+					dop.setHoraLlegadaApalaPropuestoPorCamion(-1);
+					dop.setMotivoRefuse("camion esta ofreciendo llegar antes que lo ofertado por pala");
+				} else {
+					//System.out.println("camion si puede realizar ciclo propuesto"); 
+					//System.out.println(dop.toString());
+				}
+				 
+			}
 		
-		if (schedule.estaCamionOcupado(dop) ) {
+
+		}
+		
+		
+		/*
+		if (schedule.estaCamionOcupado(dop)) {
 			//System.out.println("camion ocupado, retorno -1");
 			dop.setHoraLlegadaApalaPropuestoPorCamion(-1);
 			dop.setMotivoRefuse("camion ocupado");
@@ -420,12 +680,19 @@ public class TruckAgent extends Agent {
 				dop.setHoraLlegadaApalaPropuestoPorCamion(-1);
 				dop.setMotivoRefuse("camion no puede realizar ciclo propuesto");
 			} else {
-				//System.out.println("camion si puede realizar ciclo propuesto"); 
-				//System.out.println(dop.toString()); 
+				if (dop.getHoraInicioCargaPropuestoPorCamion()<dop.getHoraInicioCargaOfertadaPorPala()) {
+					dop.setHoraLlegadaApalaPropuestoPorCamion(-1);
+					dop.setMotivoRefuse("camion esta ofreciendo llegar antes que lo ofertado por pala");
+				} else {
+					//System.out.println("camion si puede realizar ciclo propuesto"); 
+					//System.out.println(dop.toString());
+				}
+				 
 			}
 		
 
 		}
+		*/
 
 	}
     
@@ -442,7 +709,7 @@ public class TruckAgent extends Agent {
 		Slot sAnterior = schedule.buscarSlotAnterior(dop.getHoraInicioCargaOfertadaPorPala());		
 		//Slot sSiguiente = controllerSchedule.buscarSlotSiguiente(dop.getHoraInicioCargaOfertadaPorPala());
 		long duracionViajeVacio=0;
-		if (schedule.getSlots().isEmpty()) {
+		if (schedule.getSlots().isEmpty() || sAnterior==null) {
 			duracionViajeVacio = duracionViaje(ubicacionInicial, dop.getUbicacionPala(), velocidadVacio);
 		} else {			
 			duracionViajeVacio = duracionViaje(sAnterior.getUbicacion(), dop.getUbicacionPala(), velocidadVacio);
@@ -457,7 +724,7 @@ public class TruckAgent extends Agent {
 		 * 1. camion puede llegar antes de la hora ofertada por pala. Aqui conviene que llegue justo a cargar, es decir no espere en pala. mejor espera en su posicion
 		 * 2. camion no puede llegar antes. Aqui no hay nada que hacer.
 		 */
-		if (schedule.getSlots().isEmpty()) {
+		if (schedule.getSlots().isEmpty()||sAnterior==null) {
 			dop.setHoraInicioViajeVacioPropuestoPorCamion(0);
 			dop.setHoraLlegadaApalaPropuestoPorCamion(duracionViajeVacio);			
 		} else {
@@ -499,5 +766,6 @@ public class TruckAgent extends Agent {
 		schedule.agregarSlot(this.getLocalName(), "", dop.getHoraInicioViajeCargadoPropuestoPorCamion(), dop.getHoraLlegadaAlugarDeDescargaPropuestoPorCamion(), dop.getDestinoMateriales(), Slot.enum_operacion.VIAJE_CARGADO, dop.getCantidadEstimadaDeMaterialATransportar());
 		schedule.agregarSlot(this.getLocalName(), "", dop.getHoraLlegadaAlugarDeDescargaPropuestoPorCamion(), dop.getHoraFinDeDescargaPropuestoPorCamion(), dop.getDestinoMateriales(), Slot.enum_operacion.DESCARGA, dop.getCantidadEstimadaDeMaterialATransportar());
 		//schedule.imprimirSchedule(this.getLocalName());
+		
 	}
 }

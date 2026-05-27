@@ -21,7 +21,8 @@ import java.io.File;
  */
 public class MainContainer {
     public static void main(String[] args) {
-    	
+    	System.out.println("hola mundo, soy un codigo injectado por claude");
+
     	//crear grafo mina
     	SimpleWeightedGraph<Vertice, DefaultWeightedEdge> grafoMina = new SimpleWeightedGraph<>(DefaultWeightedEdge.class);
     	crearGrafoMina(grafoMina);

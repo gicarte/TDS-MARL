@@ -97,9 +97,11 @@ public class Schedule {
 	public boolean estaCamionOcupado(DocumentoOfertaPropuesta dop) {
 		/*
 		 * si el camion esta desocupado retorna true, de lo contrario retorna false
+		 * 
 		 */
 		Slot actual;
 
+			
 		//System.out.println(dop.toString());
 		long horaDeCargaOfertadaPorPala = dop.getHoraInicioCargaOfertadaPorPala();
 		long horafinDescarga = dop.getHoraFinDeDescargaPropuestoPorCamion();
@@ -117,23 +119,17 @@ public class Schedule {
 		} else {
 			for (int i=0;i<slots.size()-1;i++) {
 				actual=slots.get(i);
-
-				if (horafinDescarga==0 
-						&& horaInicioCarga==0
-						&& horaInicioViajeCargado==0
-						&& horaInicioViajeVacio==0
-						&& horaLlegadaAlugarDeDescarga==0
-						&& horaLlegadaApala==0) { 	//si cumple esto es porque es la oferta de la pala y 
-					//se esta generando la propuesta. solo se revisa que 
-					//la hora ofertada por la pala el camion no este ocupado
-					if (horaDeCargaOfertadaPorPala>=actual.getHoraInicio()
-							&&horaDeCargaOfertadaPorPala<=actual.getHoraFin()) {
-						return true;
+				
+				/*
+				
+				if (horafinDescarga==0 && horaInicioCarga==0 && horaInicioViajeCargado==0 && horaInicioViajeVacio==0 && horaLlegadaAlugarDeDescarga==0 && horaLlegadaApala==0) { 	
+					if (horaDeCargaOfertadaPorPala>=actual.getHoraInicio() &&horaDeCargaOfertadaPorPala<=actual.getHoraFin()) {
+						return true; //esto es en caso que no ha se enviando propuesta aun 
 					} 
 
 				} else { //estas condiciones son para evaluar si la propuesta aceptada por la pala
 							//puede ser incorporada al schedule
-
+*/
 
 					if (horafinDescarga>=actual.getHoraInicio()
 							&& horafinDescarga<=actual.getHoraFin()) {
@@ -156,7 +152,7 @@ public class Schedule {
 						return true;
 					} 
 
-				}
+			//	}
 
 			}
 

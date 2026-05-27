@@ -5,6 +5,7 @@ import java.util.UUID;
 public class DocumentoOfertaPropuesta implements Serializable {
 	
 	private UUID uuid ;
+	private String content;
 
 	//datos oferta pala
 	private String idPala;	
@@ -24,6 +25,18 @@ public class DocumentoOfertaPropuesta implements Serializable {
 	private long horaFinDeDescargaPropuestoPorCamion;	
 	private double cantidadEstimadaDeMaterialATransportar;
 	private String motivoRefuse;
+	private long tiempoInactivoDesdeActividadAnterior;
+	
+	
+	
+	public long getTiempoInactivoDesdeActividadAnterior() {
+		return tiempoInactivoDesdeActividadAnterior;
+	}
+
+	public void setTiempoInactivoDesdeActividadAnterior(long tiempoInactivoDesdeActividadAnterior) {
+		this.tiempoInactivoDesdeActividadAnterior = tiempoInactivoDesdeActividadAnterior;
+	}
+
 	public DocumentoOfertaPropuesta(){
 		uuid = UUID.randomUUID(); 
 	}
@@ -184,4 +197,14 @@ public class DocumentoOfertaPropuesta implements Serializable {
 	public void setMotivoRefuse(String motivoRefuse) {
 		this.motivoRefuse = motivoRefuse;
 	}
+
+	public String getContent() {
+		return content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+
+	
 	}

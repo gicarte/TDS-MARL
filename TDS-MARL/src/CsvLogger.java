@@ -53,7 +53,7 @@ public class CsvLogger {
         String safeContent = (content == null) ? "" : content.replace(",", ";");
 
         //filtro de mensajes a incluir en el CSV
-        if (performative.equals("REJECT-PROPOSAL") || performative.equals("REFUSE")) {
+      //  if (performative.equals("REJECT-PROPOSAL") || performative.equals("REFUSE")) {
         	// Construir la línea de CSV
             String line = String.join(",",
                     timestamp,
@@ -68,7 +68,7 @@ public class CsvLogger {
 
             writer.println(line);
             writer.flush();
-        }
+      //  }
         
     }
 }
